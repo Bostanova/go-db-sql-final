@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 // ParcelStore реализует логику работы с данными о посылке в БД
@@ -28,9 +27,9 @@ func (s ParcelStore) Add(p Parcel) (int, error) {
 	}
 
 	id, err := res.LastInsertId()
-	//if err != nil {
-	//	return 0, err
-	//}
+	if err != nil {
+		return 0, err
+	}
 
 	return int(id), nil
 }
@@ -39,7 +38,7 @@ func (s ParcelStore) Add(p Parcel) (int, error) {
 func (s ParcelStore) Get(number int) (Parcel, error) {
 	p := Parcel{}
 
-	row := s.db.QueryRow("SELECT * FROM parcel WHERE number = :number", sql.Named("number", number))
+	row := s.db.QueryRow("SELECT number, client, status, address, created_at FROM parcel WHERE number = :number", sql.Named("number", number))
 	err := row.Scan(&p.Number, &p.Client, &p.Status, &p.Address, &p.CreatedAt)
 	if err != nil {
 		return p, err
@@ -49,7 +48,7 @@ func (s ParcelStore) Get(number int) (Parcel, error) {
 }
 
 func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
-	rows, err := s.db.Query("SELECT * FROM parcel WHERE client = :client", sql.Named("client", client))
+	rows, err := s.db.Query("SELECT number, client, status, address, created_at FROM parcel WHERE client = :client", sql.Named("client", client))
 	if err != nil {
 		return []Parcel{}, err
 	}
@@ -71,13 +70,17 @@ func (s ParcelStore) GetByClient(client int) ([]Parcel, error) {
 
 		res = append(res, p)
 	}
-
+	if err = rows.Err(); err != nil {
+		return []Parcel{}, err
+	}
 	return res, nil
 }
 
 // SetStatus обновляет статус посылки с номером number на status
 func (s ParcelStore) SetStatus(number int, status string) error {
-	_, err := s.db.Exec("UPDATE parcel SET status = :status", sql.Named("status", status))
+	_, err := s.db.Exec("UPDATE parcel SET status = :status WHERE number = :number",
+		sql.Named("status", status),
+		sql.Named("number", number))
 	if err != nil {
 		return err
 	}
@@ -87,16 +90,10 @@ func (s ParcelStore) SetStatus(number int, status string) error {
 
 // SetAddress устанавливает новый адрес доставки, если статус посылки не "registered"
 func (s ParcelStore) SetAddress(number int, address string) error {
-	parcel, err := s.Get(number)
-	if err != nil {
-		return err
-	}
-
-	if parcel.Status != ParcelStatusRegistered {
-		return fmt.Errorf("parcel status needs to be <registered>")
-	}
-
-	_, err = s.db.Exec("UPDATE parcel SET address = :address", sql.Named("address", address))
+	_, err := s.db.Exec("UPDATE parcel SET address = :address WHERE NUMBER = :number and status = :status",
+		sql.Named("address", address),
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 	if err != nil {
 		return err
 	}
@@ -106,16 +103,9 @@ func (s ParcelStore) SetAddress(number int, address string) error {
 
 // Delete удаляет из БД посылку с номером number или ошибку
 func (s ParcelStore) Delete(number int) error {
-	parcel, err := s.Get(number)
-	if err != nil {
-		return err
-	}
-
-	if parcel.Status != ParcelStatusRegistered {
-		return fmt.Errorf("parcel status needs to be <registered>")
-	}
-
-	_, err = s.db.Exec("DELETE FROM parcel WHERE number = :number", sql.Named("number", number))
+	_, err := s.db.Exec("DELETE FROM parcel WHERE NUMBER = :number and status = :status",
+		sql.Named("number", number),
+		sql.Named("status", ParcelStatusRegistered))
 	if err != nil {
 		return err
 	}
