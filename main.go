@@ -22,6 +22,7 @@ type Parcel struct {
 	CreatedAt string
 }
 
+// ParcelService реализует логику работы с посылками
 type ParcelService struct {
 	store ParcelStore
 }
@@ -30,6 +31,8 @@ func NewParcelService(store ParcelStore) ParcelService {
 	return ParcelService{store: store}
 }
 
+// Register регистрирует посылку - создает объект parcel с информацией о посылке, добавляет
+// эту посылку в БД со статусом registered. Возвращает добавленный объект parcel и ошибку
 func (s ParcelService) Register(client int, address string) (Parcel, error) {
 	parcel := Parcel{
 		Client:    client,
@@ -97,9 +100,13 @@ func (s ParcelService) Delete(number int) error {
 }
 
 func main() {
-	// настройте подключение к БД
+	db, err := sql.Open("sqlite", "tracker.db")
+	if err != nil {
+		return
+	}
+	defer db.Close()
 
-	store := // создайте объект ParcelStore функцией NewParcelStore
+	store := NewParcelStore(db)
 	service := NewParcelService(store)
 
 	// регистрация посылки
