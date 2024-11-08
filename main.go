@@ -22,7 +22,6 @@ type Parcel struct {
 	CreatedAt string
 }
 
-// ParcelService реализует логику работы с посылками
 type ParcelService struct {
 	store ParcelStore
 }
@@ -31,8 +30,6 @@ func NewParcelService(store ParcelStore) ParcelService {
 	return ParcelService{store: store}
 }
 
-// Register регистрирует посылку - создает объект parcel с информацией о посылке, добавляет
-// эту посылку в БД со статусом registered. Возвращает добавленный объект parcel и ошибку
 func (s ParcelService) Register(client int, address string) (Parcel, error) {
 	parcel := Parcel{
 		Client:    client,
@@ -102,6 +99,7 @@ func (s ParcelService) Delete(number int) error {
 func main() {
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	defer db.Close()
@@ -148,7 +146,7 @@ func main() {
 	}
 
 	// вывод посылок клиента
-	// предыдущая посылка не должна удалиться, т.к. её статус НЕ «зарегистрирована»
+	// предыдущая посылка не должна удалиться, так как её статус «НЕ «зарегистрирована»
 	err = service.PrintClientParcels(client)
 	if err != nil {
 		fmt.Println(err)
@@ -170,7 +168,7 @@ func main() {
 	}
 
 	// вывод посылок клиента
-	// здесь не должно быть последней посылки, т.к. она должна была успешно удалиться
+	// здесь не должно быть последней посылки, так как она должна была успешно удалиться
 	err = service.PrintClientParcels(client)
 	if err != nil {
 		fmt.Println(err)

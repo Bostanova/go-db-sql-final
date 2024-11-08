@@ -1,6 +1,6 @@
-module github.com/Yandex-Practicum/go-db-sql-final
+module github.com/Bostanova/go-db-sql-final
 
-go 1.21
+go 1.23
 
 require (
 	github.com/stretchr/testify v1.9.0
